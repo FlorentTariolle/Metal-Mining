@@ -146,19 +146,31 @@ def main() -> int:
 			print(f"Error loading progress: {e}")
 			dataset = {}
 
-	# Initialize API
-	api = DarkLyricsApi(use_cache=False)
-	
-	# Get artists list
-	print("Fetching artists list...")
-	artists = api.get_artists_list() or []
-	print(f"Found {len(artists)} artists")
-	
-	# Save artists list to avoid losing it
+	# Check for existing artists list first
 	artists_file = os.path.join(out_dir, "artists_list.json")
-	with open(artists_file, "w", encoding="utf-8") as f:
-		json.dump(artists, f, ensure_ascii=False, indent=2)
-	print(f"Saved artists list to: {artists_file}")
+	if os.path.exists(artists_file):
+		print("Loading existing artists list...")
+		try:
+			with open(artists_file, "r", encoding="utf-8") as f:
+				artists = json.load(f) or []
+			print(f"Loaded {len(artists)} artists from existing file")
+		except (json.JSONDecodeError, IOError) as e:
+			print(f"Error loading artists file: {e}")
+			artists = []
+	else:
+		# Initialize API and fetch artists list
+		api = DarkLyricsApi(use_cache=False)
+		print("Fetching artists list...")
+		artists = api.get_artists_list() or []
+		print(f"Found {len(artists)} artists")
+		
+		# Save artists list to avoid losing it
+		with open(artists_file, "w", encoding="utf-8") as f:
+			json.dump(artists, f, ensure_ascii=False, indent=2)
+		print(f"Saved artists list to: {artists_file}")
+	
+	# Initialize API for dataset fetching
+	api = DarkLyricsApi(use_cache=False)
 
 	# If we have existing dataset, filter out already processed artists
 	if dataset:
