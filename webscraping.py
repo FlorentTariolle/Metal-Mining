@@ -15,16 +15,17 @@ from typing import Dict, List, Any
 from metalparser.darklyrics import DarkLyricsApi  # pyright: ignore[reportMissingImports]
 
 
-def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str]) -> Dict[str, Any]:
+def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str], existing_dataset: Dict[str, Any] = None, start_position: int = 0) -> Dict[str, Any]:
 	"""
 	Fetch complete dataset: artists, their albums, and all songs.
 	Returns a nested dictionary structure.
 	"""
-	complete_dataset = {}
-	total_artists = len(artists)
+	complete_dataset = existing_dataset.copy() if existing_dataset else {}
+	total_artists = len(artists) + start_position
 	
 	for i, artist in enumerate(artists, 1):
-		print(f"[{i}/{total_artists}] Processing artist: {artist}")
+		absolute_position = start_position + i
+		print(f"[{absolute_position}/{total_artists}] Processing artist: {artist}")
 		
 		try:
 			# Get albums for this artist
@@ -73,7 +74,7 @@ def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str]) -> Dict[str, 
 			complete_dataset[artist] = artist_data
 			
 			# Save progress after each artist (for frequent saves)
-			save_progress(complete_dataset, i, total_artists)
+			save_progress(complete_dataset, absolute_position, total_artists)
 			
 		except Exception as e:
 			print(f"  Error processing artist '{artist}': {e}")
@@ -173,10 +174,12 @@ def main() -> int:
 	api = DarkLyricsApi(use_cache=False)
 
 	# If we have existing dataset, filter out already processed artists
+	start_position = 0
 	if dataset:
 		processed_artists = set(dataset.keys())
 		remaining_artists = [artist for artist in artists if artist not in processed_artists]
-		print(f"Resuming with {len(remaining_artists)} remaining artists")
+		start_position = len(artists) - len(remaining_artists)
+		print(f"Resuming with {len(remaining_artists)} remaining artists (starting from position {start_position + 1})")
 		artists = remaining_artists
 
 	if not artists:
@@ -185,14 +188,7 @@ def main() -> int:
 
 	# Fetch complete dataset
 	print("Starting complete dataset fetch...")
-	new_dataset = fetch_complete_dataset(api, artists)
-	
-	# Merge with existing dataset if resuming
-	if dataset:
-		dataset.update(new_dataset)
-		final_dataset = dataset
-	else:
-		final_dataset = new_dataset
+	final_dataset = fetch_complete_dataset(api, artists, dataset, start_position)
 
 	# Save complete dataset
 	print("Saving complete dataset...")
