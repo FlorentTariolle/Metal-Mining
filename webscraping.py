@@ -9,7 +9,6 @@ Saves to data/complete_dataset.json
 import json
 import os
 import sys
-import time
 from typing import Dict, List, Any
 
 from metalparser.darklyrics import DarkLyricsApi  # pyright: ignore[reportMissingImports]
@@ -65,8 +64,7 @@ def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str], existing_data
 						album_data["songs"].append(song_info)
 					
 					artist_data["albums"][album_name] = album_data
-					
-					
+										
 				except Exception as e:
 					print(f"      Error processing album '{album_name}': {e}")
 					continue
