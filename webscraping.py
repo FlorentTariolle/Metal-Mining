@@ -9,12 +9,11 @@ Saves to data/complete_dataset.json
 import json
 import os
 import sys
-from typing import Dict, List, Any
 
 from metalparser.darklyrics import DarkLyricsApi  # pyright: ignore[reportMissingImports]
 
 
-def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str], existing_dataset: Dict[str, Any] = None, start_position: int = 0) -> Dict[str, Any]:
+def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0):
 	"""
 	Fetch complete dataset: artists, their albums, and all songs.
 	Returns a nested dictionary structure.
@@ -81,7 +80,7 @@ def fetch_complete_dataset(api: DarkLyricsApi, artists: List[str], existing_data
 	return complete_dataset
 
 
-def save_progress(dataset: Dict[str, Any], current: int, total: int) -> None:
+def save_progress(dataset, current, total):
 	"""Save progress to a temporary file."""
 	progress_file = os.path.join("data", "progress.json")
 	
@@ -110,7 +109,7 @@ def save_progress(dataset: Dict[str, Any], current: int, total: int) -> None:
 	print(f"     📊 {total_albums} albums, {total_songs} songs collected so far")
 
 
-def main() -> int:
+def main():
 	out_dir = os.path.abspath("data")
 	os.makedirs(out_dir, exist_ok=True)
 
