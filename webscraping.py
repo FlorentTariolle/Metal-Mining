@@ -4,8 +4,12 @@
 Comprehensive script using metalparser to fetch and save the complete dataset from DarkLyrics.
 Downloads all artists, their albums, and all songs in each album.
 Saves to data/complete_dataset.json
+
+Supports multi-user scraping with different quarters of the artist list.
+Users: Florent (quarter 1), Nizar (quarter 2), Mathis (quarter 3), Rayen (quarter 4)
 """
 
+import argparse
 import json
 import os
 import sys
@@ -13,7 +17,74 @@ import sys
 from metalparser.darklyrics import DarkLyricsApi  # pyright: ignore[reportMissingImports]
 
 
-def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0):
+def get_user_info(user_name):
+	"""
+	Get user information including quarter number and progress file name.
+	"""
+	user_mapping = {
+		"Florent": 1,
+		"Nizar": 2,
+		"Mathis": 3,
+		"Rayen": 4
+	}
+	
+	if user_name not in user_mapping:
+		raise ValueError(f"Invalid user '{user_name}'. Valid users are: {', '.join(user_mapping.keys())}")
+	
+	quarter = user_mapping[user_name]
+	progress_file = f"progress{quarter}.json"
+	
+	return quarter, progress_file
+
+
+def split_artists_by_quarter(artists, quarter):
+	"""
+	Split the artists list into quarters and return the specified quarter.
+	"""
+	total_artists = len(artists)
+	quarter_size = total_artists // 4
+	
+	# Calculate start and end indices for the quarter
+	if quarter == 1:
+		start_idx = 0
+		end_idx = quarter_size
+	elif quarter == 2:
+		start_idx = quarter_size
+		end_idx = quarter_size * 2
+	elif quarter == 3:
+		start_idx = quarter_size * 2
+		end_idx = quarter_size * 3
+	elif quarter == 4:
+		start_idx = quarter_size * 3
+		end_idx = total_artists
+	else:
+		raise ValueError(f"Invalid quarter: {quarter}")
+	
+	quarter_artists = artists[start_idx:end_idx]
+	print(f"Quarter {quarter}: Processing artists {start_idx + 1} to {end_idx} ({len(quarter_artists)} artists)")
+	
+	return quarter_artists, start_idx
+
+
+def get_next_user_boundary(quarter, total_artists):
+	"""
+	Get the starting position of the next user's quarter (the boundary where this user should stop).
+	"""
+	quarter_size = total_artists // 4
+	
+	if quarter == 1:
+		return quarter_size  # Start of quarter 2
+	elif quarter == 2:
+		return quarter_size * 2  # Start of quarter 3
+	elif quarter == 3:
+		return quarter_size * 3  # Start of quarter 4
+	elif quarter == 4:
+		return total_artists  # End of all artists
+	else:
+		raise ValueError(f"Invalid quarter: {quarter}")
+
+
+def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0, progress_file_name="progress.json", user_boundary=None):
 	"""
 	Fetch complete dataset: artists, their albums, and all songs.
 	Returns a nested dictionary structure.
@@ -23,6 +94,13 @@ def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0
 	
 	for i, artist in enumerate(artists, 1):
 		absolute_position = start_position + i
+		
+		# Check if we've reached the next user's boundary
+		if user_boundary is not None and absolute_position > user_boundary:
+			print(f"🛑 Reached user boundary at position {absolute_position} (next user starts at {user_boundary + 1})")
+			print(f"Stopping processing for this user.")
+			break
+		
 		print(f"[{absolute_position}/{total_artists}] Processing artist: {artist}")
 		
 		try:
@@ -71,7 +149,7 @@ def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0
 			complete_dataset[artist] = artist_data
 			
 			# Save progress after each artist (for frequent saves)
-			save_progress(complete_dataset, absolute_position, total_artists)
+			save_progress(complete_dataset, absolute_position, total_artists, progress_file_name)
 			
 		except Exception as e:
 			print(f"  Error processing artist '{artist}': {e}")
@@ -80,9 +158,9 @@ def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0
 	return complete_dataset
 
 
-def save_progress(dataset, current, total):
-	"""Save progress to a temporary file."""
-	progress_file = os.path.join("data", "progress.json")
+def save_progress(dataset, current, total, progress_file_name="progress.json"):
+	"""Save progress to a user-specific progress file."""
+	progress_file = os.path.join("data", progress_file_name)
 	
 	# Count total albums and songs for progress info
 	total_albums = sum(len(artist_data.get("albums", {})) for artist_data in dataset.values())
@@ -110,6 +188,21 @@ def save_progress(dataset, current, total):
 
 
 def main():
+	# Parse command line arguments
+	parser = argparse.ArgumentParser(description="Scrape DarkLyrics with multi-user support")
+	parser.add_argument("--user", required=True, choices=["Florent", "Nizar", "Mathis", "Rayen"],
+						help="User name (Florent, Nizar, Mathis, or Rayen)")
+	args = parser.parse_args()
+	
+	# Get user-specific information
+	try:
+		quarter, progress_file_name = get_user_info(args.user)
+		print(f"User: {args.user} (Quarter {quarter})")
+		print(f"Progress file: {progress_file_name}")
+	except ValueError as e:
+		print(f"Error: {e}")
+		return 1
+	
 	out_dir = os.path.abspath("data")
 	os.makedirs(out_dir, exist_ok=True)
 
@@ -125,10 +218,10 @@ def main():
 		print(f"Dataset contains {len(dataset)} artists")
 		return 0
 
-	# Check for existing progress
-	progress_path = os.path.join(out_dir, "progress.json")
+	# Check for existing progress (user-specific)
+	progress_path = os.path.join(out_dir, progress_file_name)
 	if os.path.exists(progress_path):
-		print("Found existing progress file. Loading...")
+		print(f"Found existing progress file for {args.user}. Loading...")
 		try:
 			with open(progress_path, "r", encoding="utf-8") as f:
 				progress_data = json.load(f)
@@ -150,22 +243,29 @@ def main():
 		print("Loading existing artists list...")
 		try:
 			with open(artists_file, "r", encoding="utf-8") as f:
-				artists = json.load(f) or []
-			print(f"Loaded {len(artists)} artists from existing file")
+				all_artists = json.load(f) or []
+			print(f"Loaded {len(all_artists)} artists from existing file")
 		except (json.JSONDecodeError, IOError) as e:
 			print(f"Error loading artists file: {e}")
-			artists = []
+			all_artists = []
 	else:
 		# Initialize API and fetch artists list
 		api = DarkLyricsApi(use_cache=False)
 		print("Fetching artists list...")
-		artists = api.get_artists_list() or []
-		print(f"Found {len(artists)} artists")
+		all_artists = api.get_artists_list() or []
+		print(f"Found {len(all_artists)} artists")
 		
 		# Save artists list to avoid losing it
 		with open(artists_file, "w", encoding="utf-8") as f:
-			json.dump(artists, f, ensure_ascii=False, indent=2)
+			json.dump(all_artists, f, ensure_ascii=False, indent=2)
 		print(f"Saved artists list to: {artists_file}")
+	
+	# Get user's quarter of artists
+	artists, quarter_start_idx = split_artists_by_quarter(all_artists, quarter)
+	
+	# Calculate the boundary where this user should stop (start of next user's quarter)
+	user_boundary = get_next_user_boundary(quarter, len(all_artists))
+	print(f"User boundary: Will stop at position {user_boundary} (before next user's quarter)")
 	
 	# Initialize API for dataset fetching
 	api = DarkLyricsApi(use_cache=False)
@@ -175,29 +275,32 @@ def main():
 	if dataset:
 		processed_artists = set(dataset.keys())
 		remaining_artists = [artist for artist in artists if artist not in processed_artists]
-		start_position = len(artists) - len(remaining_artists)
-		print(f"Resuming with {len(remaining_artists)} remaining artists (starting from position {start_position + 1})")
+		start_position = quarter_start_idx + len(artists) - len(remaining_artists)
+		print(f"Resuming with {len(remaining_artists)} remaining artists from quarter {quarter} (starting from position {start_position + 1})")
 		artists = remaining_artists
+	else:
+		start_position = quarter_start_idx
 
 	if not artists:
-		print("No artists to process!")
+		print(f"No artists to process for {args.user}!")
 		return 0
 
 	# Fetch complete dataset
-	print("Starting complete dataset fetch...")
-	final_dataset = fetch_complete_dataset(api, artists, dataset, start_position)
+	print(f"Starting dataset fetch for {args.user} (Quarter {quarter})...")
+	final_dataset = fetch_complete_dataset(api, artists, dataset, start_position, progress_file_name, user_boundary)
 
-	# Save complete dataset
-	print("Saving complete dataset...")
-	with open(dataset_path, "w", encoding="utf-8") as f:
+	# Save user-specific dataset
+	user_dataset_path = os.path.join(out_dir, f"complete_dataset_{args.user.lower()}.json")
+	print(f"Saving {args.user}'s dataset...")
+	with open(user_dataset_path, "w", encoding="utf-8") as f:
 		json.dump(final_dataset, f, ensure_ascii=False, indent=2)
 	
 	# Clean up progress file if it exists
 	if os.path.exists(progress_path):
 		os.remove(progress_path)
 	
-	print(f"Complete dataset saved to: {dataset_path}")
-	print(f"Total artists: {len(final_dataset)}")
+	print(f"{args.user}'s dataset saved to: {user_dataset_path}")
+	print(f"Total artists processed by {args.user}: {len(final_dataset)}")
 	
 	# Count total albums and songs
 	total_albums = sum(len(artist_data.get("albums", {})) for artist_data in final_dataset.values())
