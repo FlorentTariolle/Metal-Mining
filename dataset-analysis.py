@@ -75,7 +75,7 @@ def load_music_data(filepath='data/progress1.json'):
 def analyze_lyrics_distribution(df_songs, df_albums):
     """Analyze and visualize the distribution of music with and without lyrics"""
     
-    plt.figure(figsize=(18, 12))
+    plt.figure(figsize=(20, 12))
     
     # With vs Without Lyrics
     plt.subplot(3, 3, 1)
