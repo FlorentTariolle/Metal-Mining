@@ -1,6 +1,6 @@
 # DarkLyrics Dataset Scraper and Analyzer
 
-This project, developed for the *Projet d'Approfondissement et d'Ouverture* (PAO) at INSA Rouen, scrapes and analyzes metal music lyrics from [DarkLyrics](http://www.darklyrics.com/) using two Python scripts.
+This project, developed for the *Projet d'Approfondissement et d'Ouverture* (PAO) Metal Mining at INSA Rouen, scrapes and analyzes metal music lyrics from [DarkLyrics](http://www.darklyrics.com/) using two Python scripts.
 
 ## Team
 - **Florent**: Scrapes first quarter of artists.
