@@ -127,15 +127,23 @@ def fetch_complete_dataset(api, artists, existing_dataset=None, start_position=0
 					songs_data = api.get_album_info_and_lyrics(album_name, artist, lyrics_only=False) or []
 					print(f"      Found {len(songs_data)} songs")
 					
+					# Get album metadata from first song (all songs in album have same metadata)
+					album_metadata = {
+						"release_year": songs_data[0].get("release_year", "") if songs_data else "",
+						"album_type": songs_data[0].get("album_type", "") if songs_data else ""
+					}
+					
 					album_data = {
 						"name": album_name,
+						"release_year": album_metadata["release_year"],
+						"album_type": album_metadata["album_type"],
 						"songs": []
 					}
 					
 					for song_data in songs_data:
 						song_info = {
 							"title": song_data.get("title", ""),
-							"track_number": song_data.get("track_number", 0),
+							"track_number": song_data.get("track_no", 0),  # Fixed field name to match metalparser
 							"lyrics": song_data.get("lyrics", "")
 						}
 						album_data["songs"].append(song_info)
