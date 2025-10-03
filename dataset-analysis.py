@@ -17,12 +17,14 @@ def load_music_data(filepath='data/progress1.json'):
     
     for artist_name, artist_info in data['dataset'].items():
         for album_name, album_info in artist_info['albums'].items():
+            release_year = album_info.get('release_year', 'Unknown')
             for song in album_info['songs']:
                 has_lyrics = bool(song.get('lyrics', '').strip())
                 songs_data.append({
                     'artist': artist_name,
                     'album': album_name,
                     'song': song['title'],
+                    'release_year': release_year,
                     'has_lyrics': has_lyrics,
                     'lyrics_status': 'With Lyrics' if has_lyrics else 'Without Lyrics'
                 })
@@ -48,10 +50,10 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     """Analyze and visualize the distribution of music with and without lyrics"""
     
     # Create visualization
-    plt.figure(figsize=(15, 10))
+    plt.figure(figsize=(18, 12))
     
     # With vs Without Lyrics
-    plt.subplot(2, 2, 1)
+    plt.subplot(3, 2, 1)
     lyrics_counts = df_songs['lyrics_status'].value_counts()
     colors = ['#ff9999', '#66b3ff']
     plt.pie(lyrics_counts.values, labels=lyrics_counts.index, autopct='%1.1f%%', 
@@ -59,7 +61,7 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.title('Distribution of Songs: With vs Without Lyrics', fontsize=12, fontweight='bold')
 
     # Publication types pie chart
-    plt.subplot(2, 2, 2)
+    plt.subplot(3, 2, 2)
     type_counts = df_albums['album_type'].value_counts()
     colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#cc99ff']
     plt.pie(type_counts.values, labels=type_counts.index, autopct='%1.1f%%', 
@@ -67,7 +69,7 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.title('Distribution of Publication Types', fontsize=12, fontweight='bold')
 
     # Top 10 bands by song count
-    plt.subplot(2, 2, 3)
+    plt.subplot(3, 2, 3)
     top_bands = df_songs['artist'].value_counts().head(10)
     plt.barh(top_bands.index[::-1], top_bands.values[::-1])
     plt.title('Top 10 Bands by Song Count', fontsize=12, fontweight='bold')
@@ -75,12 +77,30 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.ylabel('Bands')
     
     # Top 10 bands by album count
-    plt.subplot(2, 2, 4)
+    plt.subplot(3, 2, 4)
     top_bands_albums = df_songs.groupby('artist')['album'].nunique().sort_values(ascending=False).head(10)
     plt.barh(top_bands_albums.index[::-1], top_bands_albums.values[::-1])
     plt.title('Top 10 Bands by Album Count', fontsize=12, fontweight='bold')
     plt.xlabel('Number of Albums')
     plt.ylabel('Bands')
+    
+    # Distribution of songs over the years
+    plt.subplot(3, 2, (5, 6))  # Span across two columns
+    # Filter out 'Unknown' years and convert to numeric
+    year_data = df_songs[df_songs['release_year'] != 'Unknown'].copy()
+    year_data['release_year'] = pd.to_numeric(year_data['release_year'], errors='coerce')
+    year_data = year_data.dropna(subset=['release_year'])
+    
+    # Count songs per year
+    year_counts = year_data['release_year'].value_counts().sort_index()
+    
+    plt.bar(year_counts.index, year_counts.values)
+    plt.title('Distribution of Songs Over the Years', fontsize=12, fontweight='bold')
+    plt.xlabel('Release Year')
+    plt.ylabel('Number of Songs')
+    
+    # Set x-axis to show all years
+    plt.xticks(year_counts.index, rotation=45)
     
     plt.tight_layout()
     plt.show()
