@@ -4,6 +4,10 @@ import json
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from langdetect import detect, DetectorFactory
+
+# Ensure consistent language detection results
+DetectorFactory.seed = 0
 
 def load_music_data(filepath='data/progress1.json'):
     """Load and process music data from JSON file"""
@@ -19,14 +23,17 @@ def load_music_data(filepath='data/progress1.json'):
         for album_name, album_info in artist_info['albums'].items():
             release_year = album_info.get('release_year', 'Unknown')
             for song in album_info['songs']:
-                has_lyrics = bool(song.get('lyrics', '').strip())
+                lyrics = song.get('lyrics', '').strip()
+                has_lyrics = bool(lyrics)
+                language = detect(lyrics) if has_lyrics else 'None'
                 songs_data.append({
                     'artist': artist_name,
                     'album': album_name,
                     'song': song['title'],
                     'release_year': release_year,
                     'has_lyrics': has_lyrics,
-                    'lyrics_status': 'With Lyrics' if has_lyrics else 'Without Lyrics'
+                    'lyrics_status': 'With Lyrics' if has_lyrics else 'Without Lyrics',
+                    'language': language
                 })
     
     # Create DataFrame for songs
@@ -56,16 +63,22 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.subplot(3, 2, 1)
     lyrics_counts = df_songs['lyrics_status'].value_counts()
     colors = ['#ff9999', '#66b3ff']
-    plt.pie(lyrics_counts.values, labels=lyrics_counts.index, autopct='%1.1f%%', 
-            colors=colors, startangle=90)
+    total = lyrics_counts.sum()
+    percentages = [(status, f"{status} ({(count/total*100):.1f}%)") for status, count in lyrics_counts.items()]
+    labels = [label for _, label in percentages]
+    plt.pie(lyrics_counts.values, colors=colors, startangle=90)
+    plt.legend(labels, title="Lyrics Status", loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title('Distribution of Songs: With vs Without Lyrics', fontsize=12, fontweight='bold')
 
     # Publication types pie chart
     plt.subplot(3, 2, 2)
     type_counts = df_albums['album_type'].value_counts()
     colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#cc99ff']
-    plt.pie(type_counts.values, labels=type_counts.index, autopct='%1.1f%%', 
-            colors=colors[:len(type_counts)], startangle=90)
+    total = type_counts.sum()
+    percentages = [(type_, f"{type_} ({(count/total*100):.1f}%)") for type_, count in type_counts.items()]
+    labels = [label for _, label in percentages]
+    plt.pie(type_counts.values, colors=colors[:len(type_counts)], startangle=90)
+    plt.legend(labels, title="Publication Types", loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title('Distribution of Publication Types', fontsize=12, fontweight='bold')
 
     # Top 10 bands by song count
@@ -83,9 +96,9 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.title('Top 10 Bands by Album Count', fontsize=12, fontweight='bold')
     plt.xlabel('Number of Albums')
     plt.ylabel('Bands')
-    
+
     # Distribution of songs over the years
-    plt.subplot(3, 2, (5, 6))  # Span across two columns
+    plt.subplot(3, 2, 5)
     # Filter out 'Unknown' years and convert to numeric
     year_data = df_songs[df_songs['release_year'] != 'Unknown'].copy()
     year_data['release_year'] = pd.to_numeric(year_data['release_year'], errors='coerce')
@@ -101,6 +114,22 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     
     # Set x-axis to show all years
     plt.xticks(year_counts.index, rotation=45)
+
+    # Language distribution for songs with lyrics (Top 4 + Other)
+    plt.subplot(3, 2, 6)
+    language_counts = df_songs[df_songs['has_lyrics']]['language'].value_counts()
+    top_languages = language_counts.head(4)
+    other_count = language_counts[4:].sum() if len(language_counts) > 4 else 0
+    if other_count > 0:
+        top_languages['Other Languages'] = other_count
+    colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#cc99ff']
+    # Calculate percentages for legend
+    total = top_languages.sum()
+    percentages = [(lang, f"{lang} ({(count/total*100):.1f}%)") for lang, count in top_languages.items()]
+    labels = [label for _, label in percentages]
+    plt.pie(top_languages.values, colors=colors[:len(top_languages)], startangle=90)
+    plt.legend(labels, title="Languages", loc="center left", bbox_to_anchor=(1, 0.5))
+    plt.title('Distribution of Song Languages (Top 4 + Other)', fontsize=12, fontweight='bold')
     
     plt.tight_layout()
     plt.show()
