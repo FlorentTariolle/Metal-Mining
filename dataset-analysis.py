@@ -30,21 +30,32 @@ def analyze_lyrics_distribution():
     # Create DataFrame
     df = pd.DataFrame(songs_data)
     
-    # Print basic statistics
-    total_songs = len(df)
-    songs_with_lyrics = len(df[df['has_lyrics'] == True])
-    songs_without_lyrics = len(df[df['has_lyrics'] == False])
-    
     # Create visualization
     plt.figure(figsize=(12, 8))
     
-    # Pie chart
+    # With vs Without Lyrics
     plt.subplot(2, 2, 1)
     lyrics_counts = df['lyrics_status'].value_counts()
     colors = ['#ff9999', '#66b3ff']
     plt.pie(lyrics_counts.values, labels=lyrics_counts.index, autopct='%1.1f%%', 
             colors=colors, startangle=90)
     plt.title('Distribution of Songs: With vs Without Lyrics', fontsize=14, fontweight='bold')
+
+    # Top 10 bands by song count
+    plt.subplot(2, 2, 2)
+    top_bands = df['artist'].value_counts().head(10)
+    plt.barh(top_bands.index[::-1], top_bands.values[::-1])
+    plt.title('Top 10 Bands by Song Count')
+    plt.xlabel('Number of Songs')
+    plt.ylabel('Bands')
+    
+    # Top 10 bands by album count
+    plt.subplot(2, 2, 3)
+    top_bands_albums = df.groupby('artist')['album'].nunique().sort_values(ascending=False).head(10)
+    plt.barh(top_bands_albums.index[::-1], top_bands_albums.values[::-1])
+    plt.title('Top 10 Bands by Album Count')
+    plt.xlabel('Number of Albums')
+    plt.ylabel('Bands')
     
     plt.tight_layout()
     plt.show()
