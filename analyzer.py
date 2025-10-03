@@ -3,8 +3,9 @@
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns  # pyright: ignore[reportMissingModuleSource]
-from langdetect import detect, DetectorFactory  # pyright: ignore[reportMissingImports]
+import seaborn as sns
+from langdetect import detect, DetectorFactory
+from langdetect.lang_detect_exception import LangDetectException
 
 # Ensure consistent language detection results
 DetectorFactory.seed = 0
@@ -26,6 +27,15 @@ LANGUAGE_MAP = {
     'zh': 'Chinese',
     'ko': 'Korean',
     'ar': 'Arabic',
+    'sv': 'Swedish',
+    'fi': 'Finnish',
+    'cs': 'Czech',
+    'hu': 'Hungarian',
+    'el': 'Greek',
+    'ca': 'Catalan',
+    'no': 'Norwegian',
+    'sl': 'Slovenian',
+    'hr': 'Croatian'
 }
 
 def load_music_data(filepath='data/progress1.json'):
@@ -41,8 +51,14 @@ def load_music_data(filepath='data/progress1.json'):
             release_year = album_info.get('release_year', 'Unknown')
             for song in album_info['songs']:
                 lyrics = song.get('lyrics', '').strip()
-                has_lyrics = bool(lyrics)
-                language = detect(lyrics) if has_lyrics else 'None'
+                has_lyrics = bool(lyrics) and len(lyrics) >= 5
+                if has_lyrics:
+                    try:
+                        language = detect(lyrics)
+                    except LangDetectException:
+                        language = 'None'
+                else:
+                    language = 'None'
                 language = LANGUAGE_MAP.get(language, language) if language != 'None' else 'None'
                 songs_data.append({
                     'artist': artist_name,

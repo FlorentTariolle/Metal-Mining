@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-from metalparser.darklyrics import DarkLyricsApi  # pyright: ignore[reportMissingImports]
+from metalparser.darklyrics import DarkLyricsApi
 
 
 def get_user_info(user_name):
