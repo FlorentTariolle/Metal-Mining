@@ -3,8 +3,8 @@
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
-from langdetect import detect, DetectorFactory
+import seaborn as sns  # pyright: ignore[reportMissingModuleSource]
+from langdetect import detect, DetectorFactory  # pyright: ignore[reportMissingImports]
 
 # Ensure consistent language detection results
 DetectorFactory.seed = 0
