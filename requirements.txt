@@ -1,0 +1,9 @@
+# Core dependencies for PAO Metal Mining project
+
+# Data analysis and visualization
+pandas>=2.0.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Web scraping
+metalparser>=1.0.0
