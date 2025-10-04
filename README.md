@@ -27,3 +27,7 @@ This project, developed for the *Projet d'Approfondissement et d'Ouverture* (PAO
 Install required packages:
 ```bash
 pip install -r requirements.txt
+```
+
+## Credits
+This project utilizes the `metalparser` module developed by Luca Ballore.
