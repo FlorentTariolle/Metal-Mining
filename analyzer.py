@@ -91,10 +91,8 @@ def load_music_data(filepath='data/progress1.json'):
 def analyze_lyrics_distribution(df_songs, df_albums):
     """Analyze and visualize the distribution of music with and without lyrics"""
     
-    plt.figure(figsize=(20, 12))
-    
     # With vs Without Lyrics
-    plt.subplot(3, 3, 1)
+    plt.figure(figsize=(8, 6))
     lyrics_counts = df_songs['lyrics_status'].value_counts()
     colors = ['#ff9999', '#66b3ff']
     total = lyrics_counts.sum()
@@ -103,9 +101,11 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.pie(lyrics_counts.values, colors=colors, startangle=90)
     plt.legend(labels, title="Lyrics Status", loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title('Distribution of Songs: With vs Without Lyrics', fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
 
     # Publication types pie chart
-    plt.subplot(3, 3, 2)
+    plt.figure(figsize=(8, 6))
     type_counts = df_albums['album_type'].value_counts()
     colors = ['#ff9999', '#66b3ff', '#99ff99', '#ffcc99', '#cc99ff']
     total = type_counts.sum()
@@ -114,25 +114,31 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.pie(type_counts.values, colors=colors[:len(type_counts)], startangle=90)
     plt.legend(labels, title="Publication Types", loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title('Distribution of Publication Types', fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
 
     # Top 10 bands by song count
-    plt.subplot(3, 3, 3)
+    plt.figure(figsize=(10, 6))
     top_bands = df_songs['artist'].value_counts().head(10)
     plt.barh(top_bands.index[::-1], top_bands.values[::-1])
     plt.title('Top 10 Bands by Song Count', fontsize=12, fontweight='bold')
     plt.xlabel('Number of Songs')
     plt.ylabel('Bands')
+    plt.tight_layout()
+    plt.show()
     
     # Top 10 bands by album count
-    plt.subplot(3, 3, 4)
+    plt.figure(figsize=(10, 6))
     top_bands_albums = df_songs.groupby('artist')['album'].nunique().sort_values(ascending=False).head(10)
     plt.barh(top_bands_albums.index[::-1], top_bands_albums.values[::-1])
     plt.title('Top 10 Bands by Album Count', fontsize=12, fontweight='bold')
     plt.xlabel('Number of Albums')
     plt.ylabel('Bands')
+    plt.tight_layout()
+    plt.show()
 
     # Distribution of songs over the years
-    plt.subplot(3, 3, 5)
+    plt.figure(figsize=(12, 6))
     year_data = df_songs[df_songs['release_year'] != 'Unknown'].copy()
     year_data['release_year'] = pd.to_numeric(year_data['release_year'], errors='coerce')
     year_data = year_data.dropna(subset=['release_year'])
@@ -143,9 +149,11 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.xlabel('Release Year')
     plt.ylabel('Number of Songs')
     plt.xticks(year_counts.index, rotation=45)
+    plt.tight_layout()
+    plt.show()
 
     # Language distribution for songs with lyrics (Top 4 + Other)
-    plt.subplot(3, 3, 6)
+    plt.figure(figsize=(8, 6))
     language_counts = df_songs[df_songs['has_lyrics']]['language'].value_counts()
     top_languages = language_counts.head(4)
     other_count = language_counts[4:].sum() if len(language_counts) > 4 else 0
@@ -158,9 +166,11 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     plt.pie(top_languages.values, colors=colors[:len(top_languages)], startangle=90)
     plt.legend(labels, title="Languages", loc="center left", bbox_to_anchor=(1, 0.5))
     plt.title('Distribution of Song Languages (Top 4 + Other)', fontsize=12, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
 
     # Language distribution table (Top 20)
-    plt.subplot(3, 3, 7)
+    plt.figure(figsize=(8, 10))
     plt.title('Top 20 Languages in Songs', fontsize=12, fontweight='bold', pad=20)
     language_counts = df_songs[df_songs['has_lyrics']]['language'].value_counts()
     top_20_languages = language_counts.head(20)
@@ -178,7 +188,6 @@ def analyze_lyrics_distribution(df_songs, df_albums):
     table.set_fontsize(10)
     table.scale(1, 1.5)
     plt.axis('off')
-    
     plt.tight_layout()
     plt.show()
     
